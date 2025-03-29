@@ -29,36 +29,106 @@ def generate_random_bounding_boxes(n, space_size=10):
 ''' TODO '''
 class BVHNode:
     """Node for the Bounding Volume Hierarchy (BVH) Tree."""
-    def __init__(self,BoundingBox):
-        self.bbox = BoundingBox
-        self.lchild = None
-        self.rchild = None
+    bbox : int
+    lchild : int | None
+    rchild : int | None
+
+
+    def __init__(self, bbox:int, left: int |None = None, right: int | None = None):
+        self.bbox = bbox
+        self.lchild = left
+        self.rchild = right
     
     def add_children(self, left = None, right = None):
         self.lchild = left
         self.rchild = right
         return self
+    
+    def is_leaf(self,node):
+        return node.lchild is None and node.rchild is None
+
+
+
+def merge(left: BVHNode, right: BVHNode):
+        box_i: int = numleafs
+        bounding_boxes.append(
+            BoundingBox(
+                xmin=min(
+                    bounding_boxes[left.bbox].xmin,
+                    bounding_boxes[right.bbox].xmin,
+                ),
+                xmax=max(
+                    bounding_boxes[left.bbox].xmax,
+                    bounding_boxes[right.bbox].xmax,
+                ),
+                ymin=min(
+                    bounding_boxes[left.bbox].ymin,
+                    bounding_boxes[right.bbox].ymin,
+                ),
+                ymax=max(
+                    bounding_boxes[left.bbox].ymax,
+                    bounding_boxes[right.bbox].ymax,
+                ),
+                zmin=min(
+                    bounding_boxes[left.bbox].zmin,
+                    bounding_boxes[right.bbox].zmin,
+                ),
+                zmax=max(
+                    bounding_boxes[left.bbox].zmax,
+                    bounding_boxes[right.bbox].zmax,
+                ),
+            )
+        )
+        return BVHNode(bbox=box_i, left=left, right=right)
 
 
 ''' TODO '''
-def build_bvh(boxes):
+def build_bvh(start,stop):
     """Recursively build a BVH tree."""
-    if len(boxes) ==1:
-        #if there is only one node left return it
-        return boxes[0]
-    if len(boxes) ==2:
-        #if two nodes left, return an interior node with the two as children
-        return BVHNode().add_children(*boxes)
-    else:
-        pass
-        
+    length = stop - start
+    if length == 1:
+        return BVHNode(bbox=start)
+    mid = start + length // 2
+    return merge(
+            build_bvh(start, mid), build_bvh(mid, stop)
+        )
 
 
+def collide_r(node: BVHNode, index: int):
+        if node.bbox == index:
+            return False
+        if node.bbox < numleafs:
+            return bool(
+                bounding_boxes[node.bbox].is_colliding(bounding_boxes[index])
+            )
+        if not bounding_boxes[node.bbox].is_colliding(bounding_boxes[index]):
+            return False
+        if node.lchild is None or node.rchild is None:
+            print("serious error")
+            exit(-1)
+        return collide_r(node.lchild, index) or collide_r(
+            node.rchild, index
+        )
 
 ''' TODO '''
 def detect_collisions_bvh(root):
     """Detect collisions using BVH by comparing all leaf nodes."""
-    pass
+    if root == None:
+        return set()
+        
+    collisions = set()
+
+    for i in range(numleafs):
+        if collide_r(root, i):
+            collisions.add(i)
+
+    print(f"Collisions Detected: {len(collisions)} pairs")
+    for box_i in collisions:
+        print(
+            f"Collision: Box({bounding_boxes[box_i].xmin},"
+            f" {bounding_boxes[box_i].ymin}, {bounding_boxes[box_i].zmin})"
+            )
+    return collisions
 
 
 def draw_bounding_box(ax, box, color):
@@ -109,24 +179,21 @@ def visualize_bounding_boxes(boxes, collisions):
     plt.show()
 
 
-
-
 if __name__ == "__main__":
     num_meshes = 5
+    global bounding_boxes
     bounding_boxes = generate_random_bounding_boxes(num_meshes)
 
     ''' TODO stars '''
     # Step1: Build BVH
+    global numleafs
+    numleafs = len(bounding_boxes)
+    tree = build_bvh(0,numleafs)
 
 
     # Step2: Detect collisions using BVH
-    collisions = set()  # call function to get this. Now, set it to empty for visualization
+    collisions = detect_collisions_bvh(tree)  # call function to get this. Now, set it to empty for visualization
     ''' TODO ends '''
-
-    # Print detected collisions
-    print(f"Collisions Detected: {len(collisions)} pairs")
-    for box1, box2 in collisions:
-        print(f"Collision: Box({box1.xmin}, {box1.ymin}, {box1.zmin}) ↔ Box({box2.xmin}, {box2.ymin}, {box2.zmin})")
 
     # Visualize the bounding boxes
     visualize_bounding_boxes(bounding_boxes, collisions)
