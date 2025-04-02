@@ -94,19 +94,18 @@ def build_bvh(start,stop):
         )
 
 
-def collide_r(node: BVHNode, index: int):
+def collide(node: BVHNode, index: int):
         if node.bbox == index:
             return False
         if node.bbox < numleafs:
-            return bool(
-                bounding_boxes[node.bbox].is_colliding(bounding_boxes[index])
-            )
+            return bounding_boxes[node.bbox].is_colliding(bounding_boxes[index])
+
         if not bounding_boxes[node.bbox].is_colliding(bounding_boxes[index]):
             return False
         if node.lchild is None or node.rchild is None:
             print("serious error")
             exit(-1)
-        return collide_r(node.lchild, index) or collide_r(
+        return collide(node.lchild, index) or collide(
             node.rchild, index
         )
 
@@ -119,7 +118,7 @@ def detect_collisions_bvh(root):
     collisions = set()
 
     for i in range(numleafs):
-        if collide_r(root, i):
+        if collide(root, i):
             collisions.add(i)
 
     print(f"Collisions Detected: {len(collisions)} pairs")
@@ -159,15 +158,9 @@ def visualize_bounding_boxes(boxes, collisions):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    # Extract all boxes involved in collisions
-    collided_boxes = set()
-    for box1, box2 in collisions:
-        collided_boxes.add(box1)
-        collided_boxes.add(box2)
-
     # Draw each bounding box with the correct color and add coordinate labels
     for box in boxes:
-        color = 'red' if box in collided_boxes else 'blue'
+        color = 'blue' if box not in collisions else 'red'
         draw_bounding_box(ax, box, color)
 
     # Set axis labels
@@ -180,7 +173,7 @@ def visualize_bounding_boxes(boxes, collisions):
 
 
 if __name__ == "__main__":
-    num_meshes = 5
+    num_meshes = 7
     global bounding_boxes
     bounding_boxes = generate_random_bounding_boxes(num_meshes)
 
